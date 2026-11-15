@@ -13,6 +13,7 @@ import { internetLayer } from './internet';
 import { tsunamiLayer } from './tsunami';
 import { floodLayer } from './flood';
 import { radonLayer } from './radon';
+import { camerasLayer } from './cameras';
 import { loggingLayer } from './logging';
 import { campingLayer, waterLayer } from './outdoors';
 import { snowLayer } from './snow';
@@ -2198,5 +2199,5 @@ export function buildLayers(data: Data): AtlasLayer[] {
     ev.stats = [...(ev.stats ?? []), ...stormStats(storm)];
     tellStormWith(storm, ev);
   }
-  return [islandLayer(data), firesLayer(data), quakesLayer(data), seismicLayer(data), tsunamiLayer(data), floodLayer(data), radonLayer(data), riversLayer(data), climateLayer(data), normalsLayer(data), futureLayer(data), populationLayer(data), housingLayer(data), crimeLayer(data), hospitalsLayer(data), smokeLayer(data), wellsLayer(data), droughtLayer(data), windLayer(data), internetLayer(data), trailsLayer(data), waterLayer(data), campingLayer(data), snowLayer(data), loggingLayer(data)];
+  return [islandLayer(data), firesLayer(data), quakesLayer(data), seismicLayer(data), tsunamiLayer(data), floodLayer(data), radonLayer(data), riversLayer(data), climateLayer(data), normalsLayer(data), futureLayer(data), populationLayer(data), housingLayer(data), crimeLayer(data), hospitalsLayer(data), smokeLayer(data), wellsLayer(data), droughtLayer(data), windLayer(data), internetLayer(data), camerasLayer(data), trailsLayer(data), waterLayer(data), campingLayer(data), snowLayer(data), loggingLayer(data)];
 }

@@ -121,7 +121,7 @@ Every source is drawn as one visual metaphor that fits the theme (Island Atlas: 
 
 1. **Open data only.** Every number comes from a named public source with a licence. No scraped paywalled data, no invented values (e.g. tsunami arrival times only from published modelling, never estimated).
 2. **Re-runnable data, no manual downloads.** All data arrives through `npm run data` stages. Prove it by deleting `.cache/` and running from empty. Anything genuinely impossible to fetch (no feed exists) is typed into a script with a dated comment and listed under "Still open" in the roadmap.
-3. **Fully static site.** No backend. Pre-built JSON in `public/data/` is committed, so `npm install && npm run dev` works immediately.
+3. **Fully static site.** No backend. Pre-built JSON in `public/data/` is committed, so `npm install && npm run dev` works immediately. Live content (a webcam's current picture) is the one thing not pre-built: commit only the list of what exists, let the browser load the picture from its publisher when the user opens it, reload it on a slow clock that stops when the panel closes, and say in the panel and the sources view where it comes from.
 4. **Honest labelling.** Projections look different from records (hatched, dashed, a "projection, not a record" badge). Show ranges, not single numbers, for model output. Say when a value is borrowed from the nearest station, estimated, or covers a wider area. Missing data is skipped, never penalized.
 5. **Starts empty.** The map opens on just the region with place dots. Nothing is overlaid until the user picks a layer.
 6. **Every number is counted from the loaded data**, including the counts on the sources page and figures said in the video narration.

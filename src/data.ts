@@ -238,6 +238,15 @@ export type Water = Points<WaterTown> & { townKm: number };
 export type Camping = Points<CampTown> & { townKm: number };
 
 /**
+ * Highway cameras (cameras.json, scripts/cameras.mjs): DriveBC's roadside webcams, grouped into sites (cameras on
+ * one pole). Only the list: a camera's picture is loaded from drivebc.ca by its id when it's opened. `dir` is the
+ * compass direction it looks (null when DriveBC gives none), `note` DriveBC's remark about the camera.
+ */
+export type Cam = { id: number; dir: string | null; caption: string; note?: string };
+export type CamSite = { name: string; hwy: string; lon: number; lat: number; elev: number | null; cams: Cam[] };
+export type Cameras = { source: string; asOf: string; sites: CamSite[] };
+
+/**
  * Snow surveys (snow.json, scripts/snow.mjs): BC River Forecast Centre snow courses (measured by hand around 1 April)
  * and snow pillows (read automatically on 1 April). `swe` is 1 April snow water equivalent in mm by year, `depth` the
  * snow depth in cm; `date` only lists years when the reading wasn't taken on 1 April ('MM-DD'), `flag` the survey
@@ -334,6 +343,7 @@ export type Data = {
   drought: Drought | null;
   sun: SunData | null;
   wind: Wind | null;
+  cameras: Cameras | null;
   manifest: Record<string, { ok: boolean; updated?: string; lastError?: string }>;
 };
 
@@ -352,7 +362,7 @@ async function load<T>(name: string): Promise<T | null> {
 export async function loadAll(): Promise<Data> {
   const internet = load<Internet>('internet');
   const flood = load<Flood>('flood');
-  const water = load<Water>('water'), camping = load<Camping>('camping'), snow = load<Snow>('snow'), radon = load<Radon>('radon'), drought = load<Drought>('drought'), sun = load<SunData>('sun'), wind = load<Wind>('wind');
+  const water = load<Water>('water'), camping = load<Camping>('camping'), snow = load<Snow>('snow'), radon = load<Radon>('radon'), drought = load<Drought>('drought'), sun = load<SunData>('sun'), wind = load<Wind>('wind'), cameras = load<Cameras>('cameras');
   const [island, munis, fires, quakes, rivers, climate, normals, population, housing, crime, hospitals, seismic, smoke, future, trails, ferries, wells, logging, neighbours, manifest, tsunami] = await Promise.all([
     load<GeoJSON.Feature>('island'),
     load<Muni[]>('municipalities'),
@@ -392,7 +402,7 @@ export async function loadAll(): Promise<Data> {
   // Crime is only useful if at least one municipality matched.
   const crimeOk = crime && Object.keys(crime.munis ?? {}).length > 0 ? crime : null;
 
-  return { island, munis: munis ?? [], fires, quakes, rivers, climate, normals, population, housing, crime: crimeOk, hospitals, seismic, tsunami: tsunami?.towns ? tsunami : null, flood: (await flood)?.studies?.length ? await flood : null, smoke: smoke?.island?.length ? smoke : null, future: future?.grid?.cells?.length ? future : null, trails: trails?.routes?.length || trails?.falls?.length ? trails : null, ferries, wells: wells?.rows?.length ? wells : null, internet: (await internet)?.hexes?.length ? await internet : null, logging: logging?.footprint?.length ? logging : null, neighbours, water: (await water)?.rows?.length ? await water : null, camping: (await camping)?.rows?.length ? await camping : null, snow: (await snow)?.stations?.length ? await snow : null, radon: (await radon)?.areas?.length ? await radon : null, drought: (await drought)?.gauges?.length ? await drought : null, sun: (await sun)?.towns ? await sun : null, wind: (await wind)?.stations?.length ? await wind : null, manifest: manifest ?? {} };
+  return { island, munis: munis ?? [], fires, quakes, rivers, climate, normals, population, housing, crime: crimeOk, hospitals, seismic, tsunami: tsunami?.towns ? tsunami : null, flood: (await flood)?.studies?.length ? await flood : null, smoke: smoke?.island?.length ? smoke : null, future: future?.grid?.cells?.length ? future : null, trails: trails?.routes?.length || trails?.falls?.length ? trails : null, ferries, wells: wells?.rows?.length ? wells : null, internet: (await internet)?.hexes?.length ? await internet : null, logging: logging?.footprint?.length ? logging : null, neighbours, water: (await water)?.rows?.length ? await water : null, camping: (await camping)?.rows?.length ? await camping : null, snow: (await snow)?.stations?.length ? await snow : null, radon: (await radon)?.areas?.length ? await radon : null, drought: (await drought)?.gauges?.length ? await drought : null, sun: (await sun)?.towns ? await sun : null, wind: (await wind)?.stations?.length ? await wind : null, cameras: (await cameras)?.sites?.length ? await cameras : null, manifest: manifest ?? {} };
 }
 
 let netPromise: Promise<TrailNet | null> | null = null;
