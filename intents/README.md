@@ -90,7 +90,11 @@ same shape:
 New drafts go in `proposed/` with the same shape, using **Behaviour (proposed)**, **Open questions** and
 **Touches** (files expected to change) in place of the as-implemented sections. Move a file up into this folder
 and rewrite it as-implemented once it ships. The open ideas are in [../ROADMAP.md](../ROADMAP.md) (story mode, sea
-level, ongoing costs, Indigenous territories); none has a proposed intent yet.
+level, ongoing costs, Indigenous territories).
+
+| Proposed | File |
+|---|---|
+| See the rainstorms themselves | [proposed/see-the-rainstorms.md](proposed/see-the-rainstorms.md) |
 
 Out of scope: the `video/` explainer films are a separate tooling project that films the app; they are not an
 end-user intent of the application. [../MAP-ATLAS-BLUEPRINT.md](../MAP-ATLAS-BLUEPRINT.md) covers building a new

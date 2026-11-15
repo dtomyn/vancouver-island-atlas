@@ -34,7 +34,7 @@ export type TownMetrics = {
   flood: FloodTown | null; // % of ground within 2 km in a mapped (BC designated, 1978–1997) floodplain, and which study
   tsunami: TsunamiTown | null; // BC notification zone, % low coastal ground within 2 km, published hazard map if any
   climate: { name: string; dist: number; meanTemp: number; precip: number | null; trend: number | null } | null;
-  river: { name: string; dist: number; floodShare: number; record: { year: string; ratio: number } } | null;
+  river: { id: string; name: string; dist: number; floodShare: number; record: { year: string; ratio: number } } | null;
   feels: Record<NormalVar, NormalPick | null>; // climate normals from the nearest reporting station
   er: CareTrip | null; // nearest round-the-clock emergency room, without a ferry if any can be reached that way
   care: CareTrip | null; // nearest hospital or ER of any kind (may be limited hours or need a ferry)
@@ -187,7 +187,7 @@ export function townMetrics(data: Data): TownMetrics[] {
         const vals = Object.entries(best.s.peaks);
         const high = vals.filter(([, v]) => v >= 1.5 * best!.s.median).length;
         const rec = vals.reduce((a, b) => (b[1] > a[1] ? b : a));
-        river = { name: best.s.name, dist: best.d, floodShare: high / vals.length, record: { year: rec[0], ratio: rec[1] / best.s.median } };
+        river = { id: best.s.id, name: best.s.name, dist: best.d, floodShare: high / vals.length, record: { year: rec[0], ratio: rec[1] / best.s.median } };
       }
     }
 

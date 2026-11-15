@@ -19,7 +19,8 @@ Rich descriptions (`describe`):
 | Earthquake | Magnitude, depth, date, distance from the nearest atlas town; "How it compares" (the strongest few by rank, the rest by percentile) and a note on how depth affects shaking. The USGS place label is quoted, not used as the lead. |
 | Mapped fire perimeter | Size, cause, rank among all mapped fires, year, nearest town. |
 | Fire ignition | Start date, final size, cause, nearest town. |
-| River gauge | Normal annual peak (m³/s), record and its year, years at 1.5× normal, area drained, and a chart of every year's peak against normal. |
+| River gauge | Normal yearly peak (m³/s), record and its date, years at 1.5× normal, share of peaks in October–March, area drained; every year's peak against normal, the month it peaks, its biggest peaks (opening the storm they shared with other rivers) and the floodplain mapped on its river ([07](07-see-river-floods.md)). |
+| Floodplain area, locator ring or study-limit line | The study's details, or what a study limit means ([36](36-know-the-mapped-floodplains.md)). |
 | Weather station | 1961–1990 normal, last-decade average, warmest year, years of record, and a chart of every year against normal. |
 | Air monitor | Smokiest season, full years of data, worst daily average, and a chart of smoky fire-season days per year. |
 | Water well | Depth, yield when drilled, water level, aquifer; how it compares with the wells within 2 km; the wells within 1 km as drill holes; a link to its GWELLS record ([29](29-know-the-well-water-under-a-place.md)). Moves the timeline to its drilling date. |
@@ -44,4 +45,4 @@ don't swallow clicks meant for thin lines on other layers.
 
 ## Source
 `src/main.ts` (`onClick`, `featureDetails`, `onHover`), `src/layers.ts` (`describe` on fires, quakes, rivers,
-climate, smoke; `detailBars`, `isoDate`), `src/events.ts` (`fromTooltip`, `renderEventPanel`).
+climate, smoke; `detailBars`, `isoDate`), `src/highwater.ts` (`describeGauge`), `src/events.ts` (`fromTooltip`, `renderEventPanel`).

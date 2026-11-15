@@ -26,8 +26,9 @@ heat dome) and read its story with context, so that I understand what happened, 
   stepping through several events.
 - The ticker shows the latest crossed event and fades after 7 seconds; it never stacks cards over the map.
 - Event sources: each layer's `events()` (fires of 5,000+ ha, quakes M6.3+ within 160 km, island-wide high-water
-  years, the warmest year, the smokiest years) and four curated island-wide events (1964 tsunami, 2021 heat dome,
-  November 2021 atmospheric river, 2023 Cameron Bluffs fire) with stats, sections, sources and related layers.
+  years, the storms that peaked many rivers at once, the warmest year, the smokiest years) and four curated island-wide events (1964 tsunami, 2021 heat dome,
+  November 2021 atmospheric river, 2023 Cameron Bluffs fire) with stats, sections, sources and related layers. The
+  atmospheric river also lists the gauges that peaked in it and the floodplains on those rivers, from the data.
 
 ## Inputs (the event format)
 Required: `t`, `layer` (`'*'` for island-wide), `title`, `body`. Optional, each deepening the panel without
