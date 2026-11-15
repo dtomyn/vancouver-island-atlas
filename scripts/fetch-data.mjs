@@ -1279,6 +1279,13 @@ const SOURCES = {
     await buildWind({ log, writeOut, round, distKm, BBOX, getIsland, onIsland, ogcAll, PLACES });
   },
 
+  // Highway cameras: where DriveBC's roadside webcams are and what each looks at (scripts/cameras.mjs). Only the list
+  // is stored; the app shows the live pictures straight from drivebc.ca.
+  async cameras() {
+    const { buildCameras } = await import('./cameras.mjs');
+    await buildCameras({ log, cached, fetchBuf, writeOut, round });
+  },
+
   // A century of logging: every mapped cutblock with its harvest year, plus blocks approved or being logged now
   // (scripts/neighbours.mjs).
   async logging() {
@@ -1297,7 +1304,7 @@ const SOURCES = {
 // ---------------------------------------------------------------------------------------------
 
 const wanted = process.argv.slice(2);
-const order = ['island', 'ferries', 'fires', 'quakes', 'rivers', 'climate', 'normals', 'population', 'housing', 'crime', 'hospitals', 'seismic', 'smoke', 'future', 'trails', 'internet', 'land', 'wells', 'tsunami', 'flood', 'firehalls', 'sun', 'logging', 'neighbours', 'water', 'camping', 'snow', 'radon', 'drought', 'wind'];
+const order = ['island', 'ferries', 'fires', 'quakes', 'rivers', 'climate', 'normals', 'population', 'housing', 'crime', 'hospitals', 'seismic', 'smoke', 'future', 'trails', 'internet', 'land', 'wells', 'tsunami', 'flood', 'firehalls', 'sun', 'logging', 'neighbours', 'water', 'camping', 'snow', 'radon', 'drought', 'wind', 'cameras'];
 const run = wanted.length ? order.filter((n) => wanted.includes(n)) : order;
 
 let manifest = {};

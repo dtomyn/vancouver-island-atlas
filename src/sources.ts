@@ -136,6 +136,14 @@ const SOURCES: Source[] = [
     rings: (d): Record<number, Ring> => Object.fromEntries(Object.entries(d.drought?.island ?? {}).map(([y, [p, n]]) => [y, { v: Math.max(0.1, Math.min(1, (60 - p) / 50)), label: `summer low flows: median gauge at the ${Math.round(p)}th percentile of its record (${n} gauges)` }])),
   },
   {
+    id: 'cameras', key: 'cameras', name: 'Highway cameras', color: '#fde047', group: 'People & money',
+    owner: 'BC Ministry of Transportation and Transit (DriveBC)', title: 'DriveBC HighwayCams', url: 'https://catalogue.data.gov.bc.ca/dataset/bc-highwaycams',
+    endpoint: 'catalogue.data.gov.bc.ca · webcams.csv (the list); www.drivebc.ca/images/{id}.jpg (each live picture, loaded by the browser when a camera is opened)', licence: OGL_BC,
+    gives: 'Where every DriveBC roadside camera on the island is, the road it watches and the way it looks. The pictures are never stored: each comes straight from DriveBC when opened.',
+    read: (d) => d.cameras && { n: sum(d.cameras.sites.map((s) => s.cams.length)), what: `${fmt.int(sum(d.cameras.sites.map((s) => s.cams.length)))} cameras at ${d.cameras.sites.length} places on ${new Set(d.cameras.sites.map((s) => s.hwy)).size} roads` },
+    rings: (d) => d.cameras ? { [NOW]: { v: 1, label: `${fmt.int(sum(d.cameras.sites.map((s) => s.cams.length)))} roadside cameras today` } } : {},
+  },
+  {
     id: 'wind', key: 'wind', name: 'Windstorms', color: '#7dd3fc', group: 'Hazards',
     owner: 'Environment and Climate Change Canada', title: 'Daily climate observations: peak gust speed and direction', url: 'https://api.weather.gc.ca/collections/climate-daily',
     endpoint: 'api.weather.gc.ca/collections/climate-daily; climate-stations', licence: OGL_CA,

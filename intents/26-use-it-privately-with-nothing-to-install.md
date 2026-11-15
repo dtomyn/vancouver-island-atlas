@@ -10,8 +10,10 @@ on my machine, so that I can explore freely and share it easily.
 ## Behaviour (as implemented)
 - **Fully static**: HTML, JavaScript and JSON on GitHub Pages; no backend, database or API key. All the atlas's own
   data ships with the site (`public/data`, about 10 MB, plus the footpath network loaded when Trails is first used).
-- **Only map imagery is fetched from outside**: basemap, terrain, satellite tiles and waterfall photos from public
-  tile servers and Wikimedia.
+- **Only imagery is fetched from outside**: basemap, terrain, satellite tiles and waterfall photos from public
+  tile servers and Wikimedia, and a highway camera's current picture from DriveBC while the Highway cameras layer
+  or a camera is open ([43](43-see-the-roads-right-now.md)). Those requests carry a camera number and the time,
+  nothing about the user's choices.
 - **What's remembered stays in the browser** (`localStorage`): Town Finder weights, Land Finder filters, the
   shortlist with its notes and prices, and the trip planner's settings. Nothing is sent anywhere, with one exception
   the user starts: **Plan the route** on the shortlist ([42](42-plan-a-viewing-trip.md)) sends the shortlisted

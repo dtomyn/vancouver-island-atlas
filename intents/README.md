@@ -73,6 +73,7 @@ same shape:
 | 21 | Consider the Gulf and Discovery islands fairly | [21-consider-the-small-islands.md](21-consider-the-small-islands.md) |
 | 22 | Search every large parcel for the land we want | [22-search-for-land.md](22-search-for-land.md) |
 | 23 | Inspect a parcel and keep a shortlist | [23-inspect-and-shortlist-a-parcel.md](23-inspect-and-shortlist-a-parcel.md) |
+| 43 | See the roads right now (highway cameras) | [43-see-the-roads-right-now.md](43-see-the-roads-right-now.md) |
 | 32 | Check what's next door (parks, Crown land, logging) | [32-check-whats-next-door.md](32-check-whats-next-door.md) |
 | 39 | Check fire protection (and what it means for insurance) | [39-check-fire-protection.md](39-check-fire-protection.md) |
 | 40 | Find land that gets the winter sun | [40-find-winter-sun.md](40-find-winter-sun.md) |
