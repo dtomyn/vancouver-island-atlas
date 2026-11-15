@@ -8,6 +8,7 @@ import type { Layer, PickingInfo } from '@deck.gl/core';
 import { Data, Flood, FloodMap, FloodStudy, FloodTown, Muni, RiverStation, floodYear, fmt, km, loadFloodMap } from './data';
 import type { AtlasEvent, AtlasLayer, Ctx } from './layers';
 import { esc, safeUrl } from './html';
+import { describeGauge, describeStorm, ratioColor, riverStorms, stormDates } from './highwater';
 
 type RGBA = [number, number, number, number];
 const rgb = (c: string, a = 255): RGBA => { const o = d3.rgb(c); return [o.r, o.g, o.b, a]; };
@@ -63,6 +64,54 @@ export function floodTownRow(data: Data, key: string, metric: (l: string, dot: s
   return metric('Mapped floodplain', FLOOD_COLOR, t.pct > 0 ? `${t.pct >= 10 ? Math.round(t.pct) : t.pct.toFixed(1)}%` : 'None mapped', `${sub}<br><button class="tr-fall" data-layer="flood" style="margin-top:6px">≈ Floodplain maps ›</button>`);
 }
 
+/** The details panel for one floodplain study: opened from the map, the layer's list, a river gauge or a storm. */
+export function describeStudy(data: Data, s: FloodStudy, at?: [number, number]): AtlasEvent {
+  const F = data.flood!;
+  const studies = F.studies;
+  const NOW = new Date().getFullYear();
+  const y = floodYear(s);
+  const gauges = studyGauges(data, s);
+  const report = safeUrl(s.report);
+  const townsIn = data.munis.filter((m) => F.towns[m.key]?.studies.includes(studies.indexOf(s))).map((m) => m.name);
+  return {
+    layer: 'flood', kind: 'Floodplain map', title: s.name,
+    body: `BC designated floodplain${s.drawing ? `, drawing ${s.drawing}` : ''}: the land the province mapped as flooding in a 1-in-200-year flood${s.fanHa ? ' or as an alluvial fan' : ''} on the ${s.name}.${townsIn.length ? ` It reaches within 2 km of ${townsIn.join(', ')}.` : ''}`,
+    lon: at?.[0] ?? s.centre[0], lat: at?.[1] ?? s.centre[1], zoom: 11.5,
+    stats: [
+      { v: y ? String(y) : '—', l: s.designated ? 'designated' : 'report published' },
+      { v: y ? `${NOW - y} yrs` : '—', l: 'since it was mapped' },
+      { v: fmt.ha(s.ha), l: 'mapped floodplain' },
+      ...(s.sheets ? [{ v: String(s.sheets), l: `map sheet${s.sheets > 1 ? 's' : ''}${s.published && s.published !== s.designated ? `, published ${s.published}` : ''}` }] : []),
+    ],
+    sections: [
+      ...(s.fanHa ? [{ title: 'An alluvial fan', text: `${fmt.ha(s.fanHa)} of this study is mapped as an alluvial fan (drawn in violet): the cone of gravel a river or creek has built where it leaves the hills. Floods there can jump channel suddenly and carry debris, so a fan is a hazard area even where the water looks far away.` }] : []),
+      { title: 'What the blue area means', text: 'Land the provincial engineers expected a 200-year flood (a 0.5% chance in any year) to cover, from the river surveys and hydrology of the day. Local governments use floodplain maps in their bylaws: building in one can require the floor raised above a flood construction level and a setback from the river.' },
+      { title: 'Old map, changing river', text: `This map is ${y ? `${NOW - y} years old` : 'undated'}. Rivers move, gravel builds up, dikes are built or fail, land is filled, and the climate is changing, so the real floodplain may now be wider or narrower. Outside the blue is only "not mapped here", never "safe". Ask the regional district or town for any newer study and the flood construction level before buying.` },
+      ...(gauges.length ? [{ title: 'High water on this river', text: gauges.map((g) => { const r = gaugeRecord(g); return `${g.name}: record peak ${r.ratio.toFixed(1)}× its normal annual high (${r.date}); 1.5× or more in ${r.high} of ${r.years} years.`; }).join(' ') + ' Open a gauge above for its whole record.' }] : []),
+    ],
+    sources: [
+      ...(report ? [{ label: `Floodplain mapping report for ${s.projects[0] ?? s.name} (Aquatic Report Catalogue, EcoCat)`, url: report }] : []),
+      FLOOD_REFS.catalogue,
+    ],
+    layers: gauges.length ? ['flood', 'rivers'] : ['flood'],
+    // the gauges on its rivers and the storms that drove them highest, each a click from its own panel
+    detail: gauges.length ? (el) => {
+      const list = (title: string, items: { head: string; sub: string; c: string; ev: () => AtlasEvent }[]) => {
+        if (!items.length) return;
+        el.insertAdjacentHTML('beforeend', `<h3>${esc(title)}</h3>`);
+        const box = el.appendChild(document.createElement('div'));
+        box.className = 'ev-list hw-list';
+        box.innerHTML = items.map((it, i) => `<button class="ev-item" data-i="${i}" style="--c:${it.c}"><span class="ev-dot"></span><span><b>${esc(it.head)}</b><small>${esc(it.sub)}</small></span><span class="ev-go">›</span></button>`).join('');
+        box.querySelectorAll<HTMLElement>('[data-i]').forEach((b) => b.addEventListener('click', () => window.dispatchEvent(new CustomEvent('atlas:event', { detail: items[+b.dataset.i!].ev() }))));
+      };
+      list('River gauges on this floodplain’s rivers', gauges.map((g) => { const r = gaugeRecord(g); return { head: g.name, sub: `record ${r.ratio.toFixed(1)}× its normal yearly peak (${r.date}) · ${r.years} years of record`, c: ratioColor(r.ratio), ev: () => describeGauge(data, g) }; }));
+      const hits = riverStorms(data).flatMap((st) => { const h = st.hits.filter((x) => gauges.includes(x.g)).sort((a, b) => b.ratio - a.ratio)[0]; return h ? [{ st, h }] : []; }).sort((a, b) => b.h.ratio - a.h.ratio).slice(0, 5);
+      list('Storms that sent these rivers highest', hits.map(({ st, h }) => ({ head: `${h.ratio.toFixed(1)}× · ${stormDates(st)}`, sub: `${h.g.name} · one storm with ${st.hits.length - 1} other rivers`, c: ratioColor(h.ratio), ev: () => describeStorm(data, st) })));
+    } : undefined,
+  };
+}
+
+
 type Poly = { s: number; fan?: 1; poly: [number, number][][] };
 type Row = { m: Muni; t: FloodTown };
 
@@ -81,35 +130,6 @@ export function floodLayer(data: Data): AtlasLayer {
   rows.sort((a, b) => b.t.pct - a.t.pct || (a.t.nearKm ?? 99) - (b.t.nearKm ?? 99));
   const years = studies.map(floodYear).filter((y): y is number => y != null);
   const NOW = new Date().getFullYear();
-
-  const describeStudy = (s: FloodStudy, at?: [number, number]): AtlasEvent => {
-    const y = floodYear(s);
-    const gauges = studyGauges(data, s);
-    const report = safeUrl(s.report);
-    const townsIn = rows.filter((r) => r.t.studies.includes(studies.indexOf(s))).map((r) => r.m.name);
-    return {
-      layer: 'flood', kind: 'Floodplain map', title: s.name,
-      body: `BC designated floodplain${s.drawing ? `, drawing ${s.drawing}` : ''}: the land the province mapped as flooding in a 1-in-200-year flood${s.fanHa ? ' or as an alluvial fan' : ''} on the ${s.name}.${townsIn.length ? ` It reaches within 2 km of ${townsIn.join(', ')}.` : ''}`,
-      lon: at?.[0] ?? s.centre[0], lat: at?.[1] ?? s.centre[1], zoom: 11.5,
-      stats: [
-        { v: y ? String(y) : '—', l: s.designated ? 'designated' : 'report published' },
-        { v: y ? `${NOW - y} yrs` : '—', l: 'since it was mapped' },
-        { v: fmt.ha(s.ha), l: 'mapped floodplain' },
-        ...(s.sheets ? [{ v: String(s.sheets), l: `map sheet${s.sheets > 1 ? 's' : ''}${s.published && s.published !== s.designated ? `, published ${s.published}` : ''}` }] : []),
-      ],
-      sections: [
-        ...(s.fanHa ? [{ title: 'An alluvial fan', text: `${fmt.ha(s.fanHa)} of this study is mapped as an alluvial fan (drawn in violet): the cone of gravel a river or creek has built where it leaves the hills. Floods there can jump channel suddenly and carry debris, so a fan is a hazard area even where the water looks far away.` }] : []),
-        { title: 'What the blue area means', text: 'Land the provincial engineers expected a 200-year flood (a 0.5% chance in any year) to cover, from the river surveys and hydrology of the day. Local governments use floodplain maps in their bylaws: building in one can require the floor raised above a flood construction level and a setback from the river.' },
-        { title: 'Old map, changing river', text: `This map is ${y ? `${NOW - y} years old` : 'undated'}. Rivers move, gravel builds up, dikes are built or fail, land is filled, and the climate is changing, so the real floodplain may now be wider or narrower. Outside the blue is only "not mapped here", never "safe". Ask the regional district or town for any newer study and the flood construction level before buying.` },
-        ...(gauges.length ? [{ title: 'High water on this river', text: gauges.map((g) => { const r = gaugeRecord(g); return `${g.name}: record peak ${r.ratio.toFixed(1)}× its normal annual high (${r.date}); 1.5× or more in ${r.high} of ${r.years} years.`; }).join(' ') + ' Show River floods to watch its peaks year by year.' }] : []),
-      ],
-      sources: [
-        ...(report ? [{ label: `Floodplain mapping report for ${s.projects[0] ?? s.name} (Aquatic Report Catalogue, EcoCat)`, url: report }] : []),
-        FLOOD_REFS.catalogue,
-      ],
-      layers: gauges.length ? ['flood', 'rivers'] : ['flood'],
-    };
-  };
 
   const l: AtlasLayer = {
     id: 'flood',
@@ -148,6 +168,7 @@ export function floodLayer(data: Data): AtlasLayer {
           getDashArray: [4, 3],
           dashJustified: true,
           extensions: dash,
+          pickable: true,
           parameters: NO_DEPTH,
         } as any),
       ];
@@ -167,6 +188,7 @@ export function floodLayer(data: Data): AtlasLayer {
             filled: false,
             lineWidthMinPixels: 1.5,
             getLineColor: rgb(color, 170),
+            pickable: true,
             parameters: { depthCompare: 'always' },
           } as any),
           new ScatterplotLayer<Row>({
@@ -227,7 +249,7 @@ export function floodLayer(data: Data): AtlasLayer {
           ${gauges.length ? `<br><span class="rd">${gauges.map(gaugeLine).join('<br>')}</span>` : ''}</li>`;
       }).join('');
       el.insertAdjacentHTML('beforeend', `
-        <p class="lede">The blue areas are <b>BC’s designated floodplains</b>: the land the province mapped as flooding in a <b>200-year flood</b> (a 0.5% chance in any year) on ${studies.length} of the island’s rivers and lakes. ${studies.some((s) => s.fanHa) ? `Violet marks an alluvial fan (${esc(studies.filter((s) => s.fanHa).map((s) => s.name).join(', '))}). ` : ''}The dashed gold lines mark where each study stopped mapping. Click an area for its study, its age and its report.</p>`);
+        <p class="lede">The blue areas are <b>BC’s designated floodplains</b>: the land the province mapped as flooding in a <b>200-year flood</b> (a 0.5% chance in any year) on ${studies.length} of the island’s rivers and lakes. ${studies.some((s) => s.fanHa) ? `Violet marks an alluvial fan (${esc(studies.filter((s) => s.fanHa).map((s) => s.name).join(', '))}). ` : ''}The dashed gold lines mark where each study stopped mapping. Click an area, its ring or a study below for its age, its report, the gauges on its rivers and the storms that sent them highest.</p>`);
       const hero = el.appendChild(document.createElement('div'));
       hero.className = 'hero';
       hero.innerHTML = [
@@ -250,7 +272,7 @@ export function floodLayer(data: Data): AtlasLayer {
       el.querySelectorAll<HTMLElement>('[data-study]').forEach((li) => li.addEventListener('click', (e) => {
         if ((e.target as HTMLElement).closest('a')) return;
         const s = studies[+li.dataset.study!];
-        if (s) window.dispatchEvent(new CustomEvent('atlas:event', { detail: describeStudy(s) }));
+        if (s) window.dispatchEvent(new CustomEvent('atlas:event', { detail: describeStudy(data, s) }));
       }));
       return { update() {} };
     },
@@ -259,7 +281,23 @@ export function floodLayer(data: Data): AtlasLayer {
       if (info.layer?.id === 'flood-areas-base') {
         const p = info.object as Poly;
         const s = studies[p.s];
-        return s ? describeStudy(s, info.coordinate as [number, number] | undefined) : null;
+        return s ? describeStudy(data, s, info.coordinate as [number, number] | undefined) : null;
+      }
+      if (info.layer?.id === 'flood-study-rings') return describeStudy(data, info.object as FloodStudy);
+      if (info.layer?.id === 'flood-limits') {
+        const at = info.coordinate as [number, number] | undefined;
+        const near = at ? [...studies].sort((a, b) => km(a.centre[0], a.centre[1], at[0], at[1]) - km(b.centre[0], b.centre[1], at[0], at[1]))[0] : null;
+        return {
+          layer: 'flood', kind: 'Floodplain map', title: 'Where the mapping stopped',
+          body: `A dashed gold line is a study limit: the point on the river where the provincial survey ended${near ? ` (here, most likely the ${near.name} study)` : ''}. The blue ends here because the map does, not because the flooding does.`,
+          ...(at ? { lon: at[0], lat: at[1], zoom: 12 } : {}),
+          sections: [{ title: 'Beyond the line', text: 'Upstream and downstream of a study limit the river floods just as it does inside it; nobody drew it. For land past the line, look at the ground itself (how high above the river it sits, old channels, gravel bars) and ask the regional district whether a newer study covers it.' }],
+          detail: near ? (el) => {
+            el.insertAdjacentHTML('beforeend', `<button class="tr-fall" type="button">≈ ${esc(near.name)} floodplain, mapped ${floodYear(near) ?? 'undated'} ›</button>`);
+            el.querySelector('button')!.addEventListener('click', () => window.dispatchEvent(new CustomEvent('atlas:event', { detail: describeStudy(data, near) })));
+          } : undefined,
+          sources: [FLOOD_REFS.catalogue],
+        };
       }
       return null;
     },
@@ -271,6 +309,11 @@ export function floodLayer(data: Data): AtlasLayer {
         if (!s) return null;
         const y = floodYear(s);
         return `<b>${esc(s.name)} ${(info.object as Poly).fan ? 'alluvial fan' : 'floodplain'}</b><br><span class="tk">Mapped</span> <span class="tv">${y ?? 'undated'}${y ? ` (${NOW - y} years ago)` : ''}</span><br><span class="tk">Flood</span> <span class="tv">200-year (0.5% a year)</span><br><span class="tk">Area</span> <span class="tv">${fmt.ha(s.ha)}</span>`;
+      }
+      if (id === 'flood-limits') return `<b>Where the mapping stopped</b><br><span class="tk">Study limit</span> <span class="tv">the survey ended here</span><br>The river floods beyond it too; nobody drew it.`;
+      if (id === 'flood-study-rings') {
+        const s = info.object as FloodStudy, y = floodYear(s);
+        return `<b>${esc(s.name)} floodplain</b><br><span class="tk">Mapped</span> <span class="tv">${y ?? 'undated'}${y ? ` (${NOW - y} years ago)` : ''}</span><br><span class="tk">Area</span> <span class="tv">${fmt.ha(s.ha)}</span>`;
       }
       const r = info.object as Row;
       if (!r.m) return null;

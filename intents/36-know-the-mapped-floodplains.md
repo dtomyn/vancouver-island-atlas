@@ -14,7 +14,9 @@ Linked both ways with *River floods* ([07](07-see-river-floods.md)).
 ## Inputs & controls
 | Control | Effect |
 |---|---|
-| Hover / click a floodplain area | Tooltip (study, year mapped, years since, area); a click opens the study's details panel. |
+| Hover / click a floodplain area or a study's locator ring | Tooltip (study, year mapped, years since, area); a click opens the study's details panel. |
+| Hover / click a dashed study-limit line | Says the survey ended there, not the flooding; the panel links to the nearest study. |
+| Click a gauge or a storm in a study's details | Opens that river gauge's record, or the storm that peaked it ([07](07-see-river-floods.md)). |
 | Click a study in the panel's list | Opens the same details panel and flies to it. |
 | Click a town dot or a town in the panel's ranking | Opens the Town Report. |
 | **≋ River floods** (panel) / *Show it on the map* (study details) | Switches to, or adds, the River floods layer with the gauges on that river. |
@@ -34,6 +36,7 @@ Linked both ways with *River floods* ([07](07-see-river-floods.md)).
   with none within 5 km left out); how the share is measured.
 - **Study details**: drawing number, year designated (or published), years since, hectares, map sheets; what the
   blue area means, why an old map may be wrong, an alluvial-fan note where there is one, the river's gauge record;
+  the gauges on its rivers and the five storms that sent them highest, each opening its own details;
   the EcoCat report and the catalogue as sources. *Show it on the map* turns on Floodplains and River floods.
 - **Town Report**: *Mapped floodplain*: the share of the ground within 2 km of the centre (sea left out) inside a
   mapped floodplain and which study; or the nearest mapped floodplain within 5 km; or "no river near here was
@@ -67,6 +70,6 @@ Linked both ways with *River floods* ([07](07-see-river-floods.md)).
 - Gauge records are matched to a study by river name (within 25 km), else the nearest gauge within 8 km.
 
 ## Source
-`scripts/flood.mjs` (`flood` stage), `src/flood.ts` (`floodLayer`, `floodTownRow`, `studyGauges`), `src/metrics.ts`
+`scripts/flood.mjs` (`flood` stage), `src/flood.ts` (`floodLayer`, `describeStudy`, `floodTownRow`, `studyGauges`), `src/metrics.ts`
 (`flood` metric and criterion), `src/land.ts` (`loadFlood`, `renderFlood`, `floodTile`), `public/data/flood.json`,
 `flood-map.json`, `land-flood.json`.

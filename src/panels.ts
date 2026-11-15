@@ -9,6 +9,7 @@ import { drawTownWells, wellsTownRow } from './wells';
 import { internetMetric } from './internet';
 import { CASCADIA_OUTER_COAST_MIN } from './tsunami';
 import { floodTownRow } from './flood';
+import { describeGauge } from './highwater';
 import { radonTownRow } from './radon';
 import { droughtTownRow } from './drought';
 import { windTownRow } from './wind';
@@ -77,13 +78,14 @@ export function renderTownReport(el: HTMLElement, data: Data, key: string, opts:
     ${wellsTownRow(data, key, metric)}
     ${loggingTownRow(data, key, metric)}
     ${t.climate?.trend != null ? `<div class="callout" style="--c:#f25f5c">Nearest long-term station (${t.climate.name}) has warmed <b>${fmt.signed(t.climate.trend, 2)} °C per decade</b> since 1950.</div>` : ''}
-    ${t.river ? `<div class="callout" style="--c:#4cc9f0"><b>${t.river.name}</b> (${t.river.dist.toFixed(0)} km away) reached 1.5× its normal peak in ${Math.round(t.river.floodShare * 100)}% of years; its record was ${t.river.record.ratio.toFixed(1)}× in ${t.river.record.year}.</div>` : ''}
+    ${t.river ? `<div class="callout" style="--c:#4cc9f0"><b>${t.river.name}</b> (${t.river.dist.toFixed(0)} km away) reached 1.5× its normal peak in ${Math.round(t.river.floodShare * 100)}% of years; its record was ${t.river.record.ratio.toFixed(1)}× in ${t.river.record.year}.<br><button class="tr-fall" data-gauge="${esc(t.river.id)}" type="button" style="margin-top:6px">≋ Its flood record, storms and mapped floodplain ›</button></div>` : ''}
     ${census ? '' : '<h3>Population (dashed = projection)</h3><div id="tr-pop"></div>'}
     ${t.price ? `<h3>Median sale value${m.areas?.housing ? ` · estimated, following ${data.housing?.islands?.[key]?.area ?? 'the rural area'}` : ''}</h3><div id="tr-price"></div>` : ''}
     ${t.csi != null ? '<h3>Crime Severity Index</h3><div id="tr-crime"></div>' : ''}
     <p class="note">Distances are from the town centre. Hazard counts describe history, not a forecast — check official floodplain, tsunami and wildfire-interface maps for any specific property.</p>`;
   el.querySelector('.close-x')!.addEventListener('click', opts.onClose);
   el.querySelectorAll<HTMLElement>('[data-layer]').forEach((b) => b.addEventListener('click', () => window.dispatchEvent(new CustomEvent('atlas:layer', { detail: b.dataset.layer }))));
+  el.querySelectorAll<HTMLElement>('[data-gauge]').forEach((b) => b.addEventListener('click', () => { const g = data.rivers?.stations.find((x) => x.id === b.dataset.gauge); if (g) window.dispatchEvent(new CustomEvent('atlas:event', { detail: describeGauge(data, g) })); }));
   el.querySelectorAll<HTMLElement>('[data-out]').forEach((b) => b.addEventListener('click', () => window.dispatchEvent(new CustomEvent('atlas:outdoors', { detail: { kind: b.dataset.out, i: +b.dataset.i! } }))));
 
   requestAnimationFrame(() => {

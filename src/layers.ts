@@ -19,6 +19,7 @@ import { snowLayer } from './snow';
 import { windLayer } from './wind';
 import { droughtLayer } from './drought';
 import { esc } from './html';
+import { describeGauge, describeStorm, ratioColor, riverStorms, stormDetail, stormNear, stormStats, tellStormWith } from './highwater';
 
 /** `hovered` is the municipality key under the pointer (town pin or column), if any. */
 export type Ctx = { time: number; speed: number; data: Data; selected: string | null; hovered: string | null; focusedId: string; clock: number };
@@ -1067,7 +1068,6 @@ function riversLayer(data: Data): AtlasLayer {
   const color = '#4cc9f0';
   const stations = data.rivers?.stations ?? [];
   const ratio = (s: (typeof stations)[number], y: number) => (s.peaks[y] != null ? s.peaks[y] / s.median : null);
-  const ratioColor = d3.scaleLinear<string>().domain([0.4, 1, 1.5, 2.5]).range(['#123a5c', '#1f78b4', '#4cc9f0', '#f1fbff']).clamp(true);
   const years = new Set<number>();
   for (const s of stations) for (const y of Object.keys(s.peaks)) years.add(+y);
   const ys = [...years].sort((a, b) => a - b);
@@ -1144,12 +1144,14 @@ function riversLayer(data: Data): AtlasLayer {
       const ev: TimedEvent[] = ys
         .filter((y) => share[y].n >= 8 && share[y].high / share[y].n >= 0.4)
         .map((y) => ({ stats: [{ v: `${share[y].high} of ${share[y].n}`, l: 'gauges at 1.5× normal or more' }, { v: `${Math.round((share[y].high / share[y].n) * 100)}%`, l: 'of gauged rivers' }], t: y + 0.05, layer: 'rivers', title: `${y}: island-wide high water`, body: `${share[y].high} of ${share[y].n} gauged rivers peaked at 1.5× their normal annual high or more.` }));
-      return ev;
+      // the storms that peaked many rivers at once; one a curated event already tells (November 2021) carries the gauges there instead
+      const storms = riverStorms(data).filter((s) => !CURATED_EVENTS.some((c) => c.layers?.includes('rivers') && Math.abs(c.t - s.t) < 0.03));
+      return [...ev, ...storms.map((s) => describeStorm(data, s))];
     },
     panel(el) {
       el.innerHTML = `${kicker(l, 'River gauges · HYDAT')}
         <h2>When the rivers rise</h2>
-        <p class="lede">Each column is a river gauge. Its height is that year’s highest flow compared with the river’s typical annual peak — a column at 2× means the river ran at double its usual flood-season high. Ripples mark years a river hit 1.5× or more.</p>`;
+        <p class="lede">Each column is a river gauge. Its height is that year’s highest flow compared with the river’s typical annual peak — a column at 2× means the river ran at double its usual flood-season high. Ripples mark years a river hit 1.5× or more. Click a gauge for its whole record, the months it floods and the floodplain mapped on its river; the timeline’s markers are the storms that peaked many rivers at once.</p>`;
       const hero = heroStats(el, 4);
       el.insertAdjacentHTML('beforeend', `<h3>Share of gauges at 1.5× normal peak or higher</h3>`);
       const set = deferChart(el.appendChild(mk('div')), (c) =>
@@ -1165,7 +1167,7 @@ function riversLayer(data: Data): AtlasLayer {
         .slice(0, 5);
       el.insertAdjacentHTML('beforeend', `
         <h3>Most extreme peaks on record</h3>
-        <div class="legend" style="display:grid;gap:6px">${records.map((d) => `<span><b>${d.r.toFixed(1)}×</b> · ${esc(d.s.name)} <span class="tk">(${esc(d.s.peakDates[d.y] ?? d.y)})</span></span>`).join('')}</div>
+        <div class="ev-list hw-list">${records.map((d, i) => `<button class="ev-item" data-rec="${i}" style="--c:${ratioColor(d.r)}"><span class="ev-dot"></span><span><b>${d.r.toFixed(1)}× · ${esc(d.s.name)}</b><small>${esc(d.s.peakDates[d.y] ?? d.y)} · the gauge’s record</small></span><span class="ev-go">›</span></button>`).join('')}</div>
         <h3>Peak flow vs. normal</h3>
         <div class="ramp" style="background:${rampCSS((t) => ratioColor(0.4 + t * 2.1))}"></div>
         <div class="ramp-labels"><span>0.4×</span><span>1×</span><span>1.5×</span><span>2.5×+</span></div>
@@ -1173,6 +1175,7 @@ function riversLayer(data: Data): AtlasLayer {
         ${data.flood ? `<button class="tr-fall" data-layer="flood" type="button" style="margin-top:4px">≈ Floodplains: where BC mapped these rivers to flood ›</button>` : ''}
         ${sourceLine(data.rivers?.source ?? '')}`);
       el.querySelector<HTMLElement>('[data-layer="flood"]')?.addEventListener('click', () => window.dispatchEvent(new CustomEvent('atlas:layer', { detail: 'flood' })));
+      el.querySelectorAll<HTMLElement>('[data-rec]').forEach((b) => b.addEventListener('click', () => window.dispatchEvent(new CustomEvent('atlas:event', { detail: describeGauge(data, records[+b.dataset.rec!].s) }))));
       return {
         update({ time }) {
           const y = Math.floor(time);
@@ -1191,17 +1194,7 @@ function riversLayer(data: Data): AtlasLayer {
       const o: any = info.object;
       if (!o || !info.layer?.id.startsWith('rivers')) return null;
       const st = o.s ?? o;
-      const years = Object.keys(st.peaks).map(Number).sort((a, b) => a - b);
-      if (!years.length) return null;
-      const rec = years.reduce((a, y) => (st.peaks[y] > st.peaks[a] ? y : a), years[0]);
-      const high = years.filter((y) => st.peaks[y] / st.median >= 1.5).length;
-      return {
-        layer: 'rivers', kind: 'River gauge', lon: st.lon, lat: st.lat, zoom: 9.5,
-        title: st.name, body: `Water Survey of Canada gauge ${st.id}, ${years.length} years of record (${years[0]}–${years.at(-1)}). Each bar is a year's highest flow against the river's normal annual peak.`,
-        stats: [{ v: `${st.median} m³/s`, l: 'normal annual peak' }, { v: `${(st.peaks[rec] / st.median).toFixed(1)}×`, l: `record, ${rec}` }, { v: `${high} of ${years.length}`, l: 'years at 1.5× normal or more' }, ...(st.area ? [{ v: `${fmt.int(st.area)} km²`, l: 'drains' }] : [])],
-        detail: detailBars('Peak flow each year, against normal', years.map((y) => ({ x: y, y: st.peaks[y] / st.median, color: ratioColor(st.peaks[y] / st.median) })), color, (v) => `${v.toFixed(1)}×`, (d) => `<b>${d.x}</b> · ${d.y.toFixed(2)}× normal`),
-        sources: [{ label: 'HYDAT, Environment and Climate Change Canada', url: 'https://wateroffice.ec.gc.ca/' }],
-      };
+      return Object.keys(st.peaks).length ? describeGauge(data, st) : null;
     },
     tooltip(info) {
       const o: any = info.object;
@@ -2144,7 +2137,11 @@ export const CURATED_EVENTS: TimedEvent[] = [
     body: 'Torrential rain causes catastrophic flooding across southern BC; washouts close the Malahat Highway, cutting Victoria off by road from the rest of the island.',
     lon: -123.55, lat: 48.55, zoom: 9.5,
     stats: [{ v: '15 Nov', l: 'the Malahat closed by washouts' }],
-    sections: [{ title: 'Why it matters here', text: 'The Malahat (Highway 1) is the only highway between Greater Victoria and the rest of the island. When it closes, the ways round are the Mill Bay–Brentwood Bay ferry or the long Pacific Marine Circle Route.' }],
+    sections: [
+      { title: 'Why it matters here', text: 'The Malahat (Highway 1) is the only highway between Greater Victoria and the rest of the island. When it closes, the ways round are the Mill Bay–Brentwood Bay ferry or the long Pacific Marine Circle Route.' },
+      { title: 'What an atmospheric river is', text: 'A long, narrow band of very moist air from the subtropics that reaches the coast and rains on the mountains for a day or more, sometimes onto snow. Most of the island’s big autumn and winter river peaks come from them, and the rivers answer within hours. The gauges above show which rivers this one sent to their yearly high; the other storm markers on the River floods timeline are found the same way.' },
+      { title: 'If you are looking at a house', text: 'Open the rivers above for their records and mapped floodplains. Most storm damage to houses is not from the big gauged rivers but from creeks, culverts, ditches and slopes, which no gauge records: ask the seller and the neighbours what happened here in November 2021, and ask the regional district for the flood construction level.' },
+    ],
     sources: [{ label: 'November 2021 Pacific Northwest floods (Wikipedia)', url: 'https://en.wikipedia.org/wiki/November_2021_Pacific_Northwest_floods' }],
     layers: ['rivers'],
   },
@@ -2193,5 +2190,13 @@ function islandLayer(data: Data): AtlasLayer {
 }
 
 export function buildLayers(data: Data): AtlasLayer[] {
+  // a curated flood story gets the gauges of its storm: the rivers that peaked in it, each a click from its record
+  for (const ev of CURATED_EVENTS) {
+    const storm = ev.layers?.includes('rivers') && !ev.detail ? stormNear(data, ev.t) : null;
+    if (!storm) continue;
+    ev.detail = stormDetail(data, storm);
+    ev.stats = [...(ev.stats ?? []), ...stormStats(storm)];
+    tellStormWith(storm, ev);
+  }
   return [islandLayer(data), firesLayer(data), quakesLayer(data), seismicLayer(data), tsunamiLayer(data), floodLayer(data), radonLayer(data), riversLayer(data), climateLayer(data), normalsLayer(data), futureLayer(data), populationLayer(data), housingLayer(data), crimeLayer(data), hospitalsLayer(data), smokeLayer(data), wellsLayer(data), droughtLayer(data), windLayer(data), internetLayer(data), trailsLayer(data), waterLayer(data), campingLayer(data), snowLayer(data), loggingLayer(data)];
 }

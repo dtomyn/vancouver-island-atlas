@@ -25,7 +25,8 @@ or a "closest towns" link in any details panel.
     normals; smoky days a year;
   - the drive to the nearest 24/7 emergency room (and a closer limited-hours option); for islands, the ferry
     (sailings a day, last boat home, crossing time);
-  - the nearest river and how often it reached 1.5× its normal peak;
+  - the nearest river and how often it reached 1.5× its normal peak, with a button to that gauge's flood record,
+    storms and mapped floodplain ([07](07-see-river-floods.md));
   - "By the 2050s" climate projections with model ranges;
   - trails and waterfalls nearby, each opening on the map;
   - water access: straight-line distance to the nearest beach, boat launch and moorage, and counts within 10 km

@@ -238,6 +238,13 @@ a { color: #9cc7ff; }
 .ev-item small { color: var(--ink-3); font-size: 11px; }
 .ev-dot { width: 9px; height: 9px; transform: rotate(45deg); border-radius: 2px; background: var(--c); box-shadow: 0 0 8px var(--c); }
 .ev-go { color: var(--ink-3); font-size: 16px; }
+.ev-item:disabled { cursor: default; opacity: .85; }
+.ev-item:disabled:hover { background: rgba(255, 255, 255, .025); border-color: var(--line); }
+/* a gauge's yearly peaks by month (July to June) */
+.hw-months { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; height: 74px; align-items: end; }
+.hw-months > div { display: grid; grid-template-rows: 1fr auto; height: 100%; align-items: end; text-align: center; }
+.hw-months i { display: block; min-height: 1px; border-radius: 3px 3px 0 0; background: var(--c, #4cc9f0); opacity: .85; }
+.hw-months span { font-size: 10px; color: var(--ink-3); padding-top: 3px; }
 .ev-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .ev-step { text-align: left; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: rgba(255, 255, 255, .025); color: var(--ink); }
 .ev-step.next { text-align: right; }
